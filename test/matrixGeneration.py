@@ -19,5 +19,5 @@ def random_array ():
     print(array)
     return
 
-random_array()
+random_array()      # Test
 
