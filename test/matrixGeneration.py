@@ -15,9 +15,8 @@ def random_array ():
         
     array = np.arange(x)            # Create an array with length x
     np.random.shuffle(array)        # Shuffle the array - Random Array
-    
-    print(array)
-    return
+
+    return array
 
 random_array()      # Test
 
