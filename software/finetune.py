@@ -13,7 +13,7 @@ for i, layer in enumerate(base_model.layers):
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from keras.applications.vgg19 import VGG19
+from keras.applications.vgg16 import VGG16
 from keras.preprocessing import image
 from keras.models import Model
 from keras.models import Sequential
@@ -31,17 +31,17 @@ K.clear_session()
 
 # --------------------- Variables -------------------------------------------
 # First training
-steps_per_epoch_1 = 20
-epochs_1 = 5
+steps_per_epoch_1 = 30
+epochs_1 = 10
 
 # Second training
-steps_per_epoch_2 = 20
-epochs_2 = 10
+steps_per_epoch_2 = 30
+epochs_2 = 6
 
 # --------------------- Creating basemodel -----------------------------------
 
 # create the base pre-trained model
-base_model = VGG19(weights='imagenet', include_top=True)
+base_model = VGG16(weights='imagenet', include_top=False)
 #base_model = VGG19(weights='imagenet')
 # without input_shape specified, expected input shape = 224,224,3
 
@@ -51,17 +51,17 @@ base_model = VGG19(weights='imagenet', include_top=True)
 
 # add a global spatial average pooling layer
 # Output tensor received via base_model.output
-##x = base_model.output
-##x = GlobalAveragePooling2D()(x)
-##x = Dropout(0.1)(x)
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+x = Dropout(0.1)(x)
 # let's add a fully-connected layer
-##x = Dense(2048, activation='relu')(x)
+x = Dense(2048, activation='relu')(x)
 # and a logistic layer -- let's say we have 200 classes
-##predictions = Dense(2, activation='softmax')(x)
+predictions = Dense(2, activation='softmax')(x)
 
 # this is the model we will train
 # inputs = list of inputs tensors, outputs = list of output tensors
-##model = Model(inputs=base_model.input, outputs=predictions)
+model = Model(inputs=base_model.input, outputs=predictions)
 ##model.summary()
 
 
@@ -69,16 +69,22 @@ base_model = VGG19(weights='imagenet', include_top=True)
 
 # --------- Modifying model by manually removing only the last layer ---------
 #
-model = Sequential()
-for layer in base_model.layers:
-    model.add(layer)
+##model = Sequential()
+##for layer in base_model.layers:
+##    model.add(layer)
 #
-model.layers.pop()
+##model.layers.pop()
 #
-for layers in model.layers:
-    layer.trainable = False
+# if only the final later is to be trained:
+# for layers in model.layers:
+#    layer.trainable = False
 #
-model.add(Dense(2, activation = 'softmax'))
+##for layer in model.layers[:19]:
+##    layer.trainable = False
+##for layer in model.layers[19:]:
+##    layer.trainable = True
+
+##model.add(Dense(2, activation = 'softmax'))
 #
 model.summary()
 
@@ -136,14 +142,14 @@ test_generator = test_datagen.flow_from_directory(
 
 # first: train only the top layers (which were randomly initialized)
 # i.e. freeze all convolutional InceptionV3 layers
-#####for layer in base_model.layers:
-#####    layer.trainable = False
+for layer in base_model.layers:
+    layer.trainable = False
 
 # compile the model (should be done *after* setting layers to non-trainable)
 #from keras.optimizers import rmsprop
 #model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
 #decrease learningrate: (lr=0.0001)
-model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
+model.compile(optimizer=SGD(lr=0.001, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
 
 first_train = model.fit_generator(
         train_generator,
@@ -169,9 +175,9 @@ first_train = model.fit_generator(
 # and train the remaining top layers. We will freeze
 # the first 10 layers and unfreeze the rest:
 
-for layer in model.layers[:2]:
+for layer in model.layers[:4]:
    layer.trainable = False
-for layer in model.layers[2:]:
+for layer in model.layers[4:]:
    layer.trainable = True
 
 # we need to recompile the model for these modifications to take effect
