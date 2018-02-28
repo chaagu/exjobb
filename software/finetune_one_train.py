@@ -168,6 +168,9 @@ plt.title('first_train')
 plt.ylabel('accuracy/loss')
 plt.xlabel('epoch')
 plt.legend(['acc', 'val_acc', 'loss', 'val_loss'], loc='upper left')
+# set axis
+plt.xlim([0, 1])
+plt.ylim([0, 1])
 plt.savefig(args.imagename1)
 plt.clf()
 
