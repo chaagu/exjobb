@@ -13,7 +13,7 @@ for i, layer in enumerate(base_model.layers):
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from keras.applications.vgg16 import VGG16
+from keras.applications.vgg19 import VGG19
 from keras.preprocessing import image
 from keras.models import Model
 from keras.models import Sequential
@@ -32,16 +32,16 @@ K.clear_session()
 # --------------------- Variables -------------------------------------------
 # First training
 steps_per_epoch_1 = 30
-epochs_1 = 10
+epochs_1 = 30
 
 # Second training
 steps_per_epoch_2 = 30
-epochs_2 = 6
+epochs_2 = 30
 
 # --------------------- Creating basemodel -----------------------------------
 
 # create the base pre-trained model
-base_model = VGG16(weights='imagenet', include_top=False)
+base_model = VGG19(weights='imagenet', include_top=False)
 #base_model = VGG19(weights='imagenet')
 # without input_shape specified, expected input shape = 224,224,3
 
@@ -53,7 +53,7 @@ base_model = VGG16(weights='imagenet', include_top=False)
 # Output tensor received via base_model.output
 x = base_model.output
 x = GlobalAveragePooling2D()(x)
-x = Dropout(0.1)(x)
+x = Dropout(0.5)(x)
 # let's add a fully-connected layer
 x = Dense(2048, activation='relu')(x)
 # and a logistic layer -- let's say we have 200 classes
@@ -62,7 +62,7 @@ predictions = Dense(2, activation='softmax')(x)
 # this is the model we will train
 # inputs = list of inputs tensors, outputs = list of output tensors
 model = Model(inputs=base_model.input, outputs=predictions)
-##model.summary()
+# model.summary()
 
 
 
@@ -79,15 +79,12 @@ model = Model(inputs=base_model.input, outputs=predictions)
 # for layers in model.layers:
 #    layer.trainable = False
 #
+##model.add(Dense(2, activation = 'softmax'))
+
 ##for layer in model.layers[:19]:
 ##    layer.trainable = False
 ##for layer in model.layers[19:]:
 ##    layer.trainable = True
-
-##model.add(Dense(2, activation = 'softmax'))
-#
-model.summary()
-
 
 # ------------------------ Prepare data --------------------------------------
 
@@ -111,7 +108,7 @@ test_datagen = image.ImageDataGenerator(rescale=1./255)
 train_generator = train_datagen.flow_from_directory(
         DATA_DIR_TRAIN,
         target_size=(224, 224),
-        batch_size=10,
+        batch_size=8,
         class_mode='categorical'
 #        save_to_dir=DATA_DIR_SAVE,
 #        save_prefix='im',
@@ -121,7 +118,7 @@ train_generator = train_datagen.flow_from_directory(
 validation_generator = test_datagen.flow_from_directory(
         DATA_DIR_VAL,
         target_size=(224, 224),
-        batch_size=11,
+        batch_size=10,
         class_mode='categorical')
 
 test_generator = test_datagen.flow_from_directory(
@@ -156,7 +153,7 @@ first_train = model.fit_generator(
         steps_per_epoch=steps_per_epoch_1, # total number of steps or batches of samples to yield from the generator before an epoch is finished: size of dataset/number of samples in batch
         epochs=epochs_1,
         validation_data=validation_generator,
-        validation_steps=2
+        validation_steps=5
         )
 
 # let's visualize layer names and layer indices to see how many layers
@@ -226,7 +223,6 @@ plt.ylabel('accuracy/loss')
 plt.xlabel('epoch')
 plt.legend(['acc', 'val_acc', 'loss', 'val_loss'], loc='upper left')
 # set axis
-plt.xlim([0, 1])
 plt.ylim([0, 1])
 plt.savefig(args.imagename1)
 plt.clf()
@@ -241,12 +237,11 @@ plt.ylabel('accuracy/loss')
 plt.xlabel('epoch')
 plt.legend(['acc', 'val_acc', 'loss', 'val_loss'], loc='upper left')
 # set axis
-plt.xlim([0, 1])
 plt.ylim([0, 1])
 plt.savefig(args.imagename2)
 
-for i, layer in enumerate(model.layers):
-    print(i,layer.name)
+#for i, layer in enumerate(model.layers):
+#    print(i,layer.name)
 
 # ------------- Saving results in textfile ------------------------------------
 # parser = argparse.ArgumentParser()
