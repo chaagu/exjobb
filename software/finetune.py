@@ -32,11 +32,11 @@ K.clear_session()
 # --------------------- Variables -------------------------------------------
 # First training
 steps_per_epoch_1 = 30
-epochs_1 = 30
+epochs_1 = 50
 
 # Second training
 steps_per_epoch_2 = 30
-epochs_2 = 30
+epochs_2 = 100
 
 # --------------------- Creating basemodel -----------------------------------
 
@@ -94,7 +94,33 @@ model = Model(inputs=base_model.input, outputs=predictions)
 DATA_DIR_TRAIN = "/mnt/nvme/wounds/data/Binary_Wound_Train"
 DATA_DIR_VAL = "/mnt/nvme/wounds/data/Binary_Wound_Val"
 DATA_DIR_TEST = "/mnt/nvme/wounds/data/TestImage"
+
+DATA_DIR_TRAIN_PIGMENT = "/mnt/nvme/wounds/data/pigment_bilder/train"
+DATA_DIR_VAL_PIGMENT = "/mnt/nvme/wounds/data/pigment_bilder/val"
+
 DATA_DIR_SAVE = "/mnt/nvme/wounds/data/Augmented_Images"
+
+train_datagen_pigment = image.ImageDataGenerator(
+            rescale=1./255,
+            rotation_range=110,
+            horizontal_flip=True,
+            vertical_flip=True
+            )
+
+test_datagen_pigment = image.ImageDataGenerator(rescale=1./255)
+
+train_generator_pigment = train_datagen_pigment.flow_from_directory(
+            DATA_DIR_TRAIN_PIGMENT,
+            target_size=(224, 224),
+            batch_size=48,
+            class_mode='categorical'
+            )
+
+validation_generator_pigment = test_datagen_pigment.flow_from_directory(
+            DATA_DIR_VAL_PIGMENT,
+            target_size=(224, 224),
+            batch_size=10,
+            class_mode='categorical')
 
 train_datagen = image.ImageDataGenerator(
         rescale=1./255,
@@ -133,6 +159,20 @@ test_generator = test_datagen.flow_from_directory(
 #x_batch, y_batch = next(train_generator)
 #x_val, y_val = next(validation_generator)
 
+# ------------ Training the entire network on pigment images ------------------
+
+for layer in model.layers:
+       layer.trainable = True
+
+model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
+
+first_train_pigment = model.fit_generator(
+    train_generator_pigment,
+    steps_per_epoch=16, # total number of steps or batches of samples to yield from the generator before an epoch is finished: size of dataset/number of samples in batch
+    epochs=75,
+    validation_data=validation_generator_pigment,
+    validation_steps=20
+    )
 
 # ---------------- Training top (newly added) layers --------------------------
 
@@ -172,9 +212,9 @@ first_train = model.fit_generator(
 # and train the remaining top layers. We will freeze
 # the first 10 layers and unfreeze the rest:
 
-for layer in model.layers[:4]:
+for layer in model.layers[:17]:
    layer.trainable = False
-for layer in model.layers[4:]:
+for layer in model.layers[17:]:
    layer.trainable = True
 
 # we need to recompile the model for these modifications to take effect
@@ -188,7 +228,7 @@ second_train = model.fit_generator(
         steps_per_epoch=steps_per_epoch_2, # total number of steps or batches of samples to yield from the generator before an epoch is finished: size of dataset/number of samples in batch
         epochs=epochs_2,
         validation_data=validation_generator,
-        validation_steps=2)
+        validation_steps=5)
 
 
 # ---------------- Testing --------------------------------------------------
