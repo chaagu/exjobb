@@ -31,13 +31,13 @@ K.clear_session()
 
 # --------------------- Variables -------------------------------------------
 # First training
-steps_per_epoch_1 = 20
-epochs_1 = 10
+steps_per_epoch_1 = 30
+epochs_1 = 40
 
 # --------------------- Creating basemodel -----------------------------------
 
 # create the base pre-trained model
-base_model = VGG19(weights='imagenet', include_top=True)
+base_model = VGG19(weights='imagenet', include_top=False)
 #base_model = VGG19(weights='imagenet')
 # without input_shape specified, expected input shape = 224,224,3
 
@@ -47,36 +47,36 @@ base_model = VGG19(weights='imagenet', include_top=True)
 
 # add a global spatial average pooling layer
 # Output tensor received via base_model.output
-##x = base_model.output
-##x = GlobalAveragePooling2D()(x)
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
 ##x = Dropout(0.1)(x)
 # let's add a fully-connected layer
-##x = Dense(2048, activation='relu')(x)
+x = Dense(2048, activation='relu')(x)
 # and a logistic layer -- let's say we have 200 classes
-##predictions = Dense(2, activation='softmax')(x)
+predictions = Dense(2, activation='softmax')(x)
 
 # this is the model we will train
 # inputs = list of inputs tensors, outputs = list of output tensors
-##model = Model(inputs=base_model.input, outputs=predictions)
-##model.summary()
+model = Model(inputs=base_model.input, outputs=predictions)
+model.summary()
 
 
 
 
 # --------- Modifying model by manually removing only the last layer ---------
 #
-model = Sequential()
-for layer in base_model.layers:
-    model.add(layer)
+##model = Sequential()
+##for layer in base_model.layers:
+##    model.add(layer)
 #
-model.layers.pop()
+##model.layers.pop()
 #
-for layers in model.layers:
-    layer.trainable = False
+##for layers in model.layers:
+##    layer.trainable = False
 #
-model.add(Dense(2, activation = 'softmax'))
+##model.add(Dense(2, activation = 'softmax'))
 #
-model.summary()
+##model.summary()
 
 
 # ------------------------ Prepare data --------------------------------------
@@ -101,7 +101,7 @@ test_datagen = image.ImageDataGenerator(rescale=1./255)
 train_generator = train_datagen.flow_from_directory(
         DATA_DIR_TRAIN,
         target_size=(224, 224),
-        batch_size=10,
+        batch_size=8,
         class_mode='categorical'
 #        save_to_dir=DATA_DIR_SAVE,
 #        save_prefix='im',
@@ -111,7 +111,7 @@ train_generator = train_datagen.flow_from_directory(
 validation_generator = test_datagen.flow_from_directory(
         DATA_DIR_VAL,
         target_size=(224, 224),
-        batch_size=11,
+        batch_size=10,
         class_mode='categorical')
 
 test_generator = test_datagen.flow_from_directory(
@@ -123,19 +123,21 @@ test_generator = test_datagen.flow_from_directory(
 
 # ---------------- Training top (newly added) layers --------------------------
 
-for layer in model.layers[:10]:
-   layer.trainable = False
-for layer in model.layers[10:]:
-   layer.trainable = True
+#for layer in model.layers[:10]:
+#   layer.trainable = False
+#for layer in model.layers[10:]:
+#   layer.trainable = True
+for layer in model.layers:
+    layer.trainable = True
 
-model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
+model.compile(optimizer=SGD(lr=0.0001, momentum=0.9, decay = 0.0001), loss='binary_crossentropy', metrics=['accuracy'])
 
 first_train = model.fit_generator(
         train_generator,
         steps_per_epoch=steps_per_epoch_1, # total number of steps or batches of samples to yield from the generator before an epoch is finished: size of dataset/number of samples in batch
         epochs=epochs_1,
         validation_data=validation_generator,
-        validation_steps=2
+        validation_steps=5
         )
 
 # ---------------- Testing --------------------------------------------------
@@ -169,7 +171,7 @@ plt.ylabel('accuracy/loss')
 plt.xlabel('epoch')
 plt.legend(['acc', 'val_acc', 'loss', 'val_loss'], loc='upper left')
 # set axis
-plt.xlim([0, 1])
+plt.ylim([0, 1])
 plt.savefig(args.imagename1)
 plt.clf()
 
