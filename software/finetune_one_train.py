@@ -22,6 +22,45 @@ from keras.optimizers import SGD
 from keras import backend as K
 import numpy as np
 import argparse
+import glob
+import cv2
+from PIL import Image as pil_image
+from datetime import datetime
+from imgaug import augmenters as iaa
+
+seq = iaa.Sequential([
+    iaa.AdditiveGaussianNoise(scale=0.10*255),
+    iaa.ContrastNormalization((0.5, 1.8)),
+    iaa.Multiply((0.5, 1.5))
+])
+
+images = []
+for name in glob.glob('/mnt/nvme/wounds/data/Binary_Wound_Train/NotVenous/*.jpg'):
+        a = np.array(cv2.imread(name))
+        a = cv2.cvtColor(a, cv2.COLOR_BGR2RGB)
+        images.append(a)
+
+count = 0
+images_aug = seq.augment_images(images)
+for number in range(len(images_aug)):
+    image_array = images_aug[count]
+    aug_image = pil_image.fromarray(image_array,mode='RGB')
+    aug_image.save("/mnt/nvme/wounds/data/Train/NotVenous/"+str(datetime.now())+'.jpg')
+    count += 1
+
+images = []
+for name in glob.glob('/mnt/nvme/wounds/data/Binary_Wound_Train/Venous/*.jpg'):
+        a = np.array(cv2.imread(name))
+        a = cv2.cvtColor(a, cv2.COLOR_BGR2RGB)
+        images.append(a)
+
+count = 0
+images_aug = seq.augment_images(images)
+for number in range(len(images_aug)):
+    image_array = images_aug[count]
+    aug_image = pil_image.fromarray(image_array,mode='RGB')
+    aug_image.save("/mnt/nvme/wounds/data/Train/Venous/"+str(datetime.now())+'.jpg')
+    count += 1
 
 #if debugging is needed
 #import pdb
@@ -31,7 +70,7 @@ K.clear_session()
 
 # --------------------- Variables -------------------------------------------
 # First training
-steps_per_epoch_1 = 30
+steps_per_epoch_1 = 20
 epochs_1 = 40
 
 # --------------------- Creating basemodel -----------------------------------
@@ -84,6 +123,7 @@ model.summary()
 
 
 # ImageDataGenerator decides which transformations are to be performed
+DATA_DIR_TRAIN_AUG = "/mnt/nvme/wounds/data/Train"
 DATA_DIR_TRAIN = "/mnt/nvme/wounds/data/Binary_Wound_Train"
 DATA_DIR_VAL = "/mnt/nvme/wounds/data/Binary_Wound_Val"
 DATA_DIR_TEST = "/mnt/nvme/wounds/data/TestImage"
@@ -98,10 +138,17 @@ train_datagen = image.ImageDataGenerator(
 
 test_datagen = image.ImageDataGenerator(rescale=1./255)
 
+train_aug_generator = test_datagen.flow_from_directory(
+        DATA_DIR_TRAIN_AUG,
+        target_size=(224, 224),
+        batch_size=20,
+        class_mode='categorical'
+        )
+
 train_generator = train_datagen.flow_from_directory(
         DATA_DIR_TRAIN,
         target_size=(224, 224),
-        batch_size=8,
+        batch_size=20,
         class_mode='categorical'
 #        save_to_dir=DATA_DIR_SAVE,
 #        save_prefix='im',
@@ -139,6 +186,19 @@ first_train = model.fit_generator(
         validation_data=validation_generator,
         validation_steps=5
         )
+
+#------------------ Training using augmented images from imgaug----------------
+
+model.compile(optimizer=SGD(lr=0.0001, momentum=0.9, decay = 0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+
+first_train = model.fit_generator(
+        train_aug_generator,
+        steps_per_epoch=steps_per_epoch_1, # total number of steps or batches of samples to yield from the generator before an epoch is finished: size of dataset/number of samples in batch
+        epochs=epochs_1,
+        validation_data=validation_generator,
+        validation_steps=5
+        )
+
 
 # ---------------- Testing --------------------------------------------------
 
