@@ -45,7 +45,7 @@ base_model = VGG19(weights='imagenet', include_top=False)
 # Output tensor received via base_model.output
 x = base_model.output
 x = GlobalAveragePooling2D()(x)
-##x = Dropout(0.1)(x)
+# x = Dropout(0.2)(x)
 # let's add a fully-connected layer
 x = Dense(2048, activation='relu')(x)
 # and a logistic layer -- let's say we have 200 classes
@@ -83,7 +83,7 @@ validation_pigment_generator = datagen.flow_from_directory(
 test_generator = datagen.flow_from_directory(
         DATA_DIR_TEST,
         target_size=(224, 224),
-        batch_size=6,
+        batch_size=10,
         class_mode='categorical'
         )
 
