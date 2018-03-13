@@ -9,7 +9,7 @@ Created on Thu Mar  8 13:09:23 2018
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from keras.applications.vgg19 import VGG19
+from keras.applications.vgg16 import VGG16
 from keras.preprocessing import image
 from keras.models import Model
 from keras.models import Sequential
@@ -24,6 +24,7 @@ from PIL import Image as pil_image
 from datetime import datetime
 from imgaug import augmenters as iaa
 K.clear_session()
+from time import gmtime, strftime
 
 #if debugging is needed
 #import pdb
@@ -36,7 +37,7 @@ epochs = 10
 
 # --------------------- Creating basemodel ------------------------------------
 
-base_model = VGG19(weights='imagenet', include_top=False)
+base_model = VGG16(weights='imagenet', include_top=False)
 # without input_shape specified, expected input shape = 224,224,3
 
 # -------------------- Modifying model ----------------------------------------
@@ -45,11 +46,11 @@ base_model = VGG19(weights='imagenet', include_top=False)
 # Output tensor received via base_model.output
 x = base_model.output
 x = GlobalAveragePooling2D()(x)
-# x = Dropout(0.2)(x)
+# x = Dropout(0.1)(x)
 # let's add a fully-connected layer
 x = Dense(2048, activation='relu')(x)
 # and a logistic layer -- let's say we have 200 classes
-predictions = Dense(2, activation='softmax')(x)
+predictions = Dense(1, activation='sigmoid')(x)
 
 # this is the model we will train
 # inputs = list of inputs tensors, outputs = list of output tensors
@@ -71,22 +72,31 @@ train_pigment_generator = datagen.flow_from_directory(
         DATA_DIR_PIGMENT_TRAIN,
         target_size=(224, 224),
         batch_size=25,
-        class_mode='categorical'
-        )
+        class_mode='binary',
+#        save_to_dir="/mnt/nvme/wounds/data/Augmented_Images_2",
+#        save_prefix=str(len(glob.glob('/mnt/nvme/wounds/data/Augmented_Images_2/*.jpg'))) + str(strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime()))
+)
 
 validation_pigment_generator = datagen.flow_from_directory(
         DATA_DIR_PIGMENT_VAL,
         target_size=(224, 224),
         batch_size=18,
-        class_mode='categorical')
+        class_mode='binary')
 
 test_generator = datagen.flow_from_directory(
         DATA_DIR_TEST,
         target_size=(224, 224),
         batch_size=10,
-        class_mode='categorical'
+        class_mode='binary'
         )
+# ---------------- For weighting ---------------------------------------------
+#For visualization:
+#for pigment_class in train_pigment_generator.classes:
+#    print(pigment_class)
+#classes_ind = np.unique(train_pigment_generator.classes, return_counts=True)
+#print(classes_ind)
 
+#class_weight = {0:1, 1:4}
 # ---------------- Training entire network ------------------------------------
 
 for layer in model.layers:
@@ -100,6 +110,7 @@ train = model.fit_generator(
         epochs=epochs,
         validation_data=validation_pigment_generator,
         validation_steps=10
+#        class_weight=class_weight
         )
 
 # ---------------- Testing ----------------------------------------------------
