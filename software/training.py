@@ -35,7 +35,7 @@ K.clear_session()
 # --------------------- Variables -------------------------------------------
 
 steps_per_epoch = 30
-epochs = 40
+epochs = 15
 
 # --------------------- Importing model -----------------------------------
 
@@ -56,20 +56,20 @@ train_generator = datagen.flow_from_directory(
         DATA_DIR_TRAIN_AUG,
         target_size=(224, 224),
         batch_size=20,
-        class_mode='categorical'
+        class_mode='binary'
         )
 
 validation_generator = datagen.flow_from_directory(
         DATA_DIR_VAL,
         target_size=(224, 224),
         batch_size=20,
-        class_mode='categorical')
+        class_mode='binary')
 
 test_generator = datagen.flow_from_directory(
         DATA_DIR_TEST,
         target_size=(224, 224),
         batch_size=6,
-        class_mode='categorical'
+        class_mode='binary'
         )
 
 # ---------------- Training entire network --------------------------
